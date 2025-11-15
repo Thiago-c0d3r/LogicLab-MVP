@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LogicLab — MVP (Dark + UX)</title>
+  <!-- Chart.js for analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{--purple:#8e44ad;--accent:#4bc0c0;--muted:#9aa0a6;--card:#121214;--bg:#0f0f10;--white:#ffffff}
+    *{box-sizing:border-box;font-family:Inter,system-ui,Arial,sans-serif}
+    html,body{height:100%}
+    body{background:linear-gradient(180deg,#050506 0%, #0f0f10 100%);color:var(--white);margin:0;padding:0;display:flex;flex-direction:column}
+    .hidden{display:none}
+    /* Splash */
+    #splash{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;background:var(--bg);z-index:9999}
+    #splash img{width:180px;height:180px;border-radius:36px;box-shadow:0 20px 50px rgba(0,0,0,0.6);transform-origin:center;animation:logoPop 1s ease}
+    @keyframes logoPop{0%{transform:scale(.6)}70%{transform:scale(1.06)}100%{transform:scale(1)}}
+    #splash h1{font-size:34px;color:var(--purple);margin:12px 0 0}
+    #splash p{opacity:.85;color:var(--muted);margin-top:8px}
+    /* Layout */
+    .container{max-width:1100px;margin:18px auto;padding:20px;background:var(--card);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,0.6)}
+    .btn{background:var(--purple);color:#fff;padding:10px 14px;border:none;border-radius:10px;cursor:pointer;text-decoration:none;display:inline-block;transition:transform .12s ease,box-shadow .12s ease}
+    .btn:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(142,68,173,0.18)}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+    .input{width:100%;padding:10px;margin-top:8px;border-radius:10px;border:1px solid #222;background:#0b0b0b;color:#fff}
+    .small{font-size:13px;color:var(--muted)}
+    .row{display:flex;gap:16px}
+    .col{flex:1}
+    .side{width:320px}
+    .card{background:#0b0b0b;padding:16px;border-radius:12px}
+    .exercise{margin-top:12px;padding:18px;background:linear-gradient(180deg,#0f0f12, #0b0b0b);border-radius:12px;border:1px solid rgba(255,255,255,0.02)}
+    .actions{display:flex;gap:10px;margin-top:12px}
+    .feedback{margin-top:10px;font-weight:600}
+    .progress-wrap{height:14px;background:#151617;border-radius:12px;overflow:hidden}
+    .progress-inner{height:100%;width:0;background:linear-gradient(90deg,var(--purple),var(--accent));text-align:center;color:#fff;font-size:12px;transition:width .6s cubic-bezier(.2,.9,.2,1)}
+    .table{width:100%;border-collapse:collapse;margin-top:12px}
+    .table th,.table td{padding:8px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.03)}
+    .chart-box{height:180px}
+    .fade-in{animation:fadeIn .5s ease both}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    @media(max-width:900px){.row{flex-direction:column}.side{width:100%}.topbar{flex-direction:column;align-items:flex-start}}
+    /* Hint box */
+    .hint-box{background:#0f0f14;border-radius:8px;padding:10px;margin-top:10px;border:1px solid rgba(255,255,255,0.03)}
+    .hint-step{margin:6px 0}
+  </style>
+</head>
+<body>
+  <!-- Splash (only logo) -->
+  <div id="splash">
+    <img src="logo.png" alt="logo">
+    <h1>LogicLab</h1>
+    <p class="small">Aprenda lógica e algoritmos com feedback e gamificação</p>
+  </div>
+
+  <!-- Login Screen -->
+  <div id="login-screen" class="container card hidden" style="max-width:520px;margin:24px auto;text-align:center;padding:32px">
+    <img src="https://dummyimage.com/200x200/8e44ad/ffffff&text=LogicLab" style="width:140px;border-radius:22px;margin-bottom:12px" />
+    <h2>Bem-vindo ao LogicLab</h2>
+    <p class="small" style="margin-bottom:18px">Escolha como deseja entrar</p>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
+      <button class="btn" id="auth-login">Entrar</button>
+      <button class="btn ghost" id="auth-guest">Entrar como convidado</button>
+    </div>
+    <div id="login-modal" style="margin-top:22px;display:none">
+      <input id="email" class="input" placeholder="Email">
+      <input id="senha" class="input" placeholder="Senha" type="password">
+      <button class="btn" id="login-do">Confirmar</button>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <main class="container hidden" id="main-app">
+    <div class="topbar" style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px">
+      <div class="small">Módulo: <strong id="module-title">Algoritmos & Lógica — Conceitos</strong></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="small">XP: <strong id="xp">0</strong></div>
+        <div class="small">Streak: <strong id="streak-count">0</strong></div>
+        
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <div class="progress-wrap"><div id="progress-inner" class="progress-inner">0%</div></div>
+          <div id="exercise-area" class="exercise fade-in"></div>
+          <div class="actions" style="margin-top:14px">
+            <button class="btn ghost" id="prev-btn">Anterior</button>
+            <button class="btn ghost" id="next-btn">Próximo</button>
+            <button class="btn ghost" id="back-modulos">Sair</button>
+            <button class="btn" id="finish-btn" style="display:none">Concluir Módulo</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <h3 style="margin:0 0 8px 0">Progresso & Motivação</h3>
+          <table class="table">
+            <thead><tr><th>Métrica</th><th>Valor</th></tr></thead>
+            <tbody>
+              <tr><td>XP acumulado</td><td id="tbl-xp">0</td></tr>
+              <tr><td>Dias de streak</td><td id="tbl-streak">0</td></tr>
+              <tr><td>Módulos concluídos</td><td id="tbl-mods">0</td></tr>
+              <tr><td>Último desempenho</td><td id="tbl-last">—</td></tr>
+            </tbody>
+          </table>
+          <div style="display:flex;gap:12px;margin-top:12px;align-items:center">
+            <div style="flex:1"><canvas id="chartProgress" class="chart-box"></canvas></div>
+            <div style="flex:1"><canvas id="chartMood" class="chart-box"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="card">
+          <h4 style="margin:0 0 8px 0">Perfil</h4>
+          <div class="small" id="profile-box">Convidado</div>
+          <div style="margin-top:12px">
+            <button class="btn" id="btn-reset">Resetar progresso</button>
+          </div>
+        </div>
+        
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    /* ---------- Função shuffle ---------- */
+    function shuffle(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    /* ---------- QUIZ: 10 Questões Conceituais (Mercado Real) ---------- */
+    const quiz = [
+      {
+        pergunta: "O que é um algoritmo?",
+        alternativas: shuffle([
+          "Um conjunto de passos para resolver um problema.",
+          "Um programa escrito em C.",
+          "Um gráfico que organiza informações.",
+          "Uma linguagem de programação."
+        ]),
+        correta: "Um conjunto de passos para resolver um problema.",
+        dica: "Algoritmo = passos lógicos → do problema até a solução."
+      },
+      {
+        pergunta: "O que é uma variável?",
+        alternativas: shuffle([
+          "Um espaço na memória que armazena um valor.",
+          "Um número fixo.",
+          "Um comando para repetir algo.",
+          "Um tipo de erro em C."
+        ]),
+        correta: "Um espaço na memória que armazena um valor.",
+        dica: "Variável = caixa que guarda valores durante o programa."
+      },
+      {
+        pergunta: "O que é uma estrutura de decisão?",
+        alternativas: shuffle([
+          "Um comando que escolhe caminhos diferentes dependendo de uma condição.",
+          "Um comando para criar laços.",
+          "Um bloco de memória.",
+          "Um tipo de variável."
+        ]),
+        correta: "Um comando que escolhe caminhos diferentes dependendo de uma condição.",
+        dica: "É o famoso if/else: decisões baseadas em condições."
+      },
+      {
+        pergunta: "Para que servem os operadores relacionais?",
+        alternativas: shuffle([
+          "Comparar valores.",
+          "Somar números.",
+          "Criar variáveis.",
+          "Imprimir textos na tela."
+        ]),
+        correta: "Comparar valores.",
+        dica: "Operadores >, <, == servem para COMPARAR."
+      },
+      {
+        pergunta: "Qual o papel dos laços de repetição?",
+        alternativas: shuffle([
+          "Repetir ações automaticamente.",
+          "Armazenar dados.",
+          "Criar decisões.",
+          "Parar um programa imediatamente."
+        ]),
+        correta: "Repetir ações automaticamente.",
+        dica: "For/while = repete até uma condição acabar."
+      },
+      {
+        pergunta: "O que é um fluxograma?",
+        alternativas: shuffle([
+          "Representação visual de um algoritmo.",
+          "Um código-fonte em C.",
+          "Um erro comum de lógica.",
+          "Uma tabela de tipos de dados."
+        ]),
+        correta: "Representação visual de um algoritmo.",
+        dica: "Fluxograma = desenho do algoritmo."
+      },
+      {
+        pergunta: "O que significa depurar um programa?",
+        alternativas: shuffle([
+          "Encontrar e corrigir erros.",
+          "Apagar arquivos do computador.",
+          "Traduzir o código para outra linguagem.",
+          "Criar novas funções."
+        ]),
+        correta: "Encontrar e corrigir erros.",
+        dica: "Debug = caçar bugs, entender o comportamento."
+      },
+      {
+        pergunta: "O que é um erro lógico?",
+        alternativas: shuffle([
+          "O programa roda, mas faz a coisa errada.",
+          "O programa nem compila.",
+          "Falta de ponto e vírgula.",
+          "Um erro na instalação do compilador."
+        ]),
+        correta: "O programa roda, mas faz a coisa errada.",
+        dica: "Erro lógico = o código compila, mas o resultado está errado."
+      },
+      {
+        pergunta: "Qual é a função principal de um pseudocódigo?",
+        alternativas: shuffle([
+          "Descrever um algoritmo de forma simples e sem sintaxe.",
+          "Criar tabelas de memória.",
+          "Compilar programas.",
+          "Criar interfaces gráficas."
+        ]),
+        correta: "Descrever um algoritmo de forma simples e sem sintaxe.",
+        dica: "Pseudo = código 'falso', apenas descrição lógica."
+      },
+      {
+        pergunta: "O que significa 'entrada' em um algoritmo?",
+        alternativas: shuffle([
+          "Dados fornecidos ao programa.",
+          "O resultado final.",
+          "O tipo de variável.",
+          "A ordem dos passos."
+        ]),
+        correta: "Dados fornecidos ao programa.",
+        dica: "Entrada = o que o usuário fornece → saída = resultado."
+      }
+    ];
+
+    // Converter quiz para formato do app
+    const exercises = quiz.map(item => {
+      const correctIndex = item.alternativas.indexOf(item.correta);
+      return {
+        q: item.pergunta,
+        opts: item.alternativas,
+        a: correctIndex,
+        hints: [item.dica]
+      };
+    });
+
+    /* ---------- State ---------- */
+    let user = null;
+    let currentIndex = 0;
+    let xp = 0;
+    let streak = 0;
+    let modulesProgress = {conceitos: {done:0,total:0}};
+    let moodHistory = [];
+
+    /* ---------- UI helpers ---------- */
+    function by(id){return document.getElementById(id)}
+    function showEl(id){ const e=by(id); if(e) e.classList.remove('hidden'); }
+    function hideEl(id){ const e=by(id); if(e) e.classList.add('hidden'); }
+
+    /* ---------- Splash -> show login screen ---------- */
+    setTimeout(()=>{
+      const splash = by('splash');
+      if(splash) splash.style.display='none';
+      showEl('login-screen');
+    },1400);
+
+    /* ---------- Login actions ---------- */
+    const authLoginBtn = by('auth-login');
+    const authGuestBtn = by('auth-guest');
+    const loginModal = by('login-modal');
+    if(authLoginBtn) authLoginBtn.addEventListener('click', ()=>{ if(loginModal) loginModal.style.display='block'; });
+    if(authGuestBtn) authGuestBtn.addEventListener('click', ()=>{ user={email:'guest',name:'Convidado'}; startApp(); });
+    const loginDoBtn = by('login-do');
+    if(loginDoBtn) loginDoBtn.addEventListener('click', ()=>{
+      const email = by('email').value.trim();
+      if(!email) return alert('Digite um email');
+      user = {email, name: email.split('@')[0]};
+      startApp();
+    });
+
+    /* ---------- Start app ---------- */
+    function startApp(){
+      if(loginModal) loginModal.style.display='none';
+      hideEl('login-screen');
+      showEl('main-app');
+      by('profile-box').textContent = user.name + ' ('+user.email+')';
+      modulesProgress = {conceitos:{done:0,total:exercises.length}};
+      currentIndex = 0;
+      xp = 0;
+      streak = 0;
+      moodHistory = [];
+      renderExercise();
+      initCharts();
+      updateAnalytics();
+      updateProgressBar();
+    }
+
+    /* ---------- Exercise rendering ---------- */
+    function renderExercise(){
+      const area = by('exercise-area');
+      const ex = exercises[currentIndex];
+      if(!ex){
+        area.innerHTML = '<h3 class="fade-in">🎉 Você terminou o módulo!</h3>';
+        by('finish-btn').style.display='inline-block';
+        updateAnalytics();
+        return;
+      }
+
+      // --- shuffle options while keeping track of correct index ---
+      const indexed = ex.opts.map((text, idx)=>({text, idx}));
+      for(let i = indexed.length -1; i>0; i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [indexed[i], indexed[j]] = [indexed[j], indexed[i]];
+      }
+      const newCorrectIndex = indexed.findIndex(o=>o.idx === ex.a);
+
+      let html = `<div><h3>${currentIndex+1}. ${ex.q}</h3>`;
+      html += '<div style="margin-top:10px">';
+      indexed.forEach((opt,i)=>{
+        html += `<label style="display:block;margin:8px 0"><input type="radio" name="alt" value="${i}"> ${opt.text}</label>`;
+      });
+      html += '</div>';
+      html += '<div class="actions"><button class="btn" id="send">Enviar</button><button class="btn ghost" id="hint">Dica</button></div>';
+      html += '<div id="feedback" class="feedback small"></div></div>';
+      area.innerHTML = html;
+
+      const send = by('send');
+      if(send) send.addEventListener('click', ()=>{
+        const sel = document.querySelector('input[name="alt"]:checked');
+        const fb = by('feedback');
+        if(!sel){ fb.textContent='Selecione uma alternativa.'; fb.style.color='orange'; return; }
+        const correct = parseInt(sel.value)===newCorrectIndex;
+        if(correct){
+          fb.textContent='Correto! +10 XP';
+          fb.style.color='var(--accent)';
+          xp += 10;
+          modulesProgress.conceitos.done = Math.min(modulesProgress.conceitos.total, modulesProgress.conceitos.done+1);
+        } else {
+          fb.textContent='Incorreto. Tente novamente.';
+          fb.style.color='red';
+        }
+        fb.classList.add('fade-in');
+        setTimeout(()=>fb.classList.remove('fade-in'),400);
+        updateAnalytics();
+        updateProgressBar();
+      });
+
+      const hint = by('hint');
+      if(hint){
+        let step = 0;
+        hint.addEventListener('click', ()=>{
+          const fb = by('feedback');
+          const ex = exercises[currentIndex];
+          if(!ex || !ex.hints || ex.hints.length === 0){
+            fb.textContent='Sem dicas disponíveis.';
+            return;
+          }
+          fb.textContent = '💡 ' + ex.hints[step % ex.hints.length];
+          fb.style.color='var(--muted)';
+          fb.classList.add('fade-in');
+          setTimeout(()=>fb.classList.remove('fade-in'),400);
+          step++;
+        });
+      }
+
+      const labels = area.querySelectorAll('label');
+      labels.forEach((el,i)=>{
+        el.style.opacity=0;
+        el.style.transform='translateY(6px)';
+        setTimeout(()=>{
+          el.style.transition='all .36s cubic-bezier(.2,.9,.2,1)';
+          el.style.opacity=1;
+          el.style.transform='none';
+        }, 70 * i);
+      });
+    }
+
+    /* navigation */
+    const prevBtn = by('prev-btn');
+    if(prevBtn) prevBtn.addEventListener('click', ()=>{ if(currentIndex>0) currentIndex--; renderExercise(); updateProgressBar(); });
+    const nextBtn = by('next-btn');
+    if(nextBtn) nextBtn.addEventListener('click', ()=>{ if(currentIndex < exercises.length-1) currentIndex++; renderExercise(); updateProgressBar(); });
+    const backBtn = by('back-modulos');
+    if(backBtn) backBtn.addEventListener('click', ()=>{ location.reload(); });
+    const finishBtn = by('finish-btn');
+    if(finishBtn) finishBtn.addEventListener('click', ()=>{ alert('Módulo concluído! Parabéns!'); xp += 50; updateAnalytics(); });
+    const resetBtn = by('btn-reset');
+    if(resetBtn) resetBtn.addEventListener('click', ()=>{
+      if(!confirm('Resetar progresso?')) return;
+      xp=0; streak=0; modulesProgress.conceitos.done=0; moodHistory=[]; updateAnalytics(); updateProgressBar(); currentIndex = 0; renderExercise();
+    });
+
+    /* progress animation */
+    function updateProgressBar(){
+      const total = modulesProgress.conceitos.total || exercises.length;
+      const done = modulesProgress.conceitos.done || 0;
+      const percent = total===0?0:Math.round((done/total)*100);
+      const el = by('progress-inner');
+      if(el){
+        el.style.width = percent + '%';
+        el.textContent = percent + '%';
+      }
+    }
+
+    /* Analytics (charts + table) */
+    let chartProgress=null, chartMood=null;
+    function initCharts(){
+      try{
+        const ctx = by('chartProgress') && by('chartProgress').getContext('2d');
+        if(ctx) chartProgress = new Chart(ctx, {
+          type:'line',
+          data:{ labels:[], datasets:[{ label:'XP', data:[], fill:true, tension:.4, backgroundColor:'rgba(139,69,186,0.12)', borderColor:'rgb(142,68,173)' }]},
+          options:{ responsive:true, scales:{ x:{ display:false } } }
+        });
+        const ctx2 = by('chartMood') && by('chartMood').getContext('2d');
+        if(ctx2) chartMood = new Chart(ctx2, {
+          type:'bar',
+          data:{ labels:[], datasets:[{ label:'Motivação (1-5)', data:[], backgroundColor:'rgba(75,192,192,0.6)'}]},
+          options:{ responsive:true, scales:{ y:{ suggestedMin:0, suggestedMax:5 } } }
+        });
+      }catch(e){ console.warn('Chart init failed', e); }
+    }
+
+    function updateAnalytics(){
+      by('tbl-xp').textContent = xp;
+      by('tbl-streak').textContent = streak;
+      by('tbl-mods').textContent = modulesProgress.conceitos.done;
+      by('tbl-last').textContent = (modulesProgress.conceitos.done>0) ? (modulesProgress.conceitos.done + ' acertos') : '—';
+      by('xp').textContent = xp;
+      by('streak-count').textContent = streak;
+
+      const time = new Date().toLocaleTimeString();
+      if(chartProgress && chartMood){
+        chartProgress.data.labels.push(time);
+        chartProgress.data.datasets[0].data.push(xp);
+        if(chartProgress.data.labels.length>12){ chartProgress.data.labels.shift(); chartProgress.data.datasets[0].data.shift(); }
+        chartProgress.update();
+
+        const moods = moodHistory.slice(-7);
+        chartMood.data.labels = moods.map((m,i)=>i+1);
+        chartMood.data.datasets[0].data = moods;
+        chartMood.update();
+      }
+    }
+
+    /* mood buttons */
+    Array.from(document.querySelectorAll('.smallMood')).forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const val = parseInt(btn.getAttribute('data-mood'));
+        moodHistory.push(val);
+        btn.animate([{transform:'scale(1)'},{transform:'scale(1.12)'},{transform:'scale(1)'}],{duration:360});
+        updateAnalytics();
+      });
+    });
+
+    /* init UI state */
+    modulesProgress.conceitos.total = exercises.length;
+    initCharts();
+  </script>
+</body>
+</html>
