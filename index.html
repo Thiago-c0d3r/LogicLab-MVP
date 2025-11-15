@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>LogicLab — MVP </title>
-  <!-- Chart.js for analytics -->
+  <title>LogicLab — MVP</title>
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root{--purple:#8e44ad;--accent:#4bc0c0;--muted:#9aa0a6;--card:#121214;--bg:#0f0f10;--white:#ffffff}
@@ -36,24 +36,23 @@
     .progress-inner{height:100%;width:0;background:linear-gradient(90deg,var(--purple),var(--accent));text-align:center;color:#fff;font-size:12px;transition:width .6s cubic-bezier(.2,.9,.2,1)}
     .table{width:100%;border-collapse:collapse;margin-top:12px}
     .table th,.table td{padding:8px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.03)}
-    .chart-box{height:180px}
     .fade-in{animation:fadeIn .5s ease both}
     @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-    @media(max-width:900px){.row{flex-direction:column}.side{width:100%}.topbar{flex-direction:column;align-items:flex-start}}
-    /* Hint box */
-    .hint-box{background:#0f0f14;border-radius:8px;padding:10px;margin-top:10px;border:1px solid rgba(255,255,255,0.03)}
-    .hint-step{margin:6px 0}
+    @media(max-width:900px){.row{flex-direction:column}.side{width:100%}}
+    /* Gráfico de pizza */
+    .chart-container{position:relative;width:220px;height:220px;margin:0 auto}
+    .pie-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px;font-weight:bold;pointer-events:none}
   </style>
 </head>
 <body>
-  <!-- Splash (only logo) -->
+  <!-- Splash -->
   <div id="splash">
     <img src="logo.png" alt="logo">
     <h1>LogicLab</h1>
     <p class="small">Aprenda lógica e algoritmos com feedback e gamificação</p>
   </div>
 
-  <!-- Login Screen -->
+  <!-- Login -->
   <div id="login-screen" class="container card hidden" style="max-width:520px;margin:24px auto;text-align:center;padding:32px">
     <img src="https://dummyimage.com/200x200/8e44ad/ffffff&text=LogicLab" style="width:140px;border-radius:22px;margin-bottom:12px" />
     <h2>Bem-vindo ao LogicLab</h2>
@@ -76,7 +75,6 @@
       <div style="display:flex;gap:8px;align-items:center">
         <div class="small">XP: <strong id="xp">0</strong></div>
         <div class="small">Streak: <strong id="streak-count">0</strong></div>
-        
       </div>
     </div>
 
@@ -94,19 +92,21 @@
         </div>
 
         <div class="card" style="margin-top:14px">
-          <h3 style="margin:0 0 8px 0">Progresso & Motivação</h3>
+          <h3 style="margin:0 0 8px 0">Progresso & Desempenho</h3>
           <table class="table">
             <thead><tr><th>Métrica</th><th>Valor</th></tr></thead>
             <tbody>
               <tr><td>XP acumulado</td><td id="tbl-xp">0</td></tr>
               <tr><td>Dias de streak</td><td id="tbl-streak">0</td></tr>
               <tr><td>Questões Concluídas</td><td id="tbl-mods">0</td></tr>
-              <tr><td>Último desempenho</td><td id="tbl-last">—</td></tr>
+              <tr><td>Desempenho</td><td id="tbl-last">—</td></tr>
             </tbody>
           </table>
-          <div style="display:flex;gap:12px;margin-top:12px;align-items:center">
-            <div style="flex:1"><canvas id="chartProgress" class="chart-box"></canvas></div>
-            <div style="flex:1"><canvas id="chartMood" class="chart-box"></canvas></div>
+
+          <!-- GRÁFICO DE PIZZA -->
+          <div class="chart-container">
+            <canvas id="chartPerformance"></canvas>
+            <div id="pie-center" class="pie-center">0%</div>
           </div>
         </div>
       </div>
@@ -119,14 +119,12 @@
             <button class="btn" id="btn-reset">Resetar progresso</button>
           </div>
         </div>
-        
-        </div>
       </aside>
     </div>
   </main>
 
   <script>
-    /* ---------- Função shuffle ---------- */
+    /* ---------- Shuffle ---------- */
     function shuffle(array) {
       const arr = [...array];
       for (let i = arr.length - 1; i > 0; i--) {
@@ -136,129 +134,23 @@
       return arr;
     }
 
-    /* ---------- QUIZ: 10 Questões Conceituais (Mercado Real) ---------- */
+    /* ---------- Quiz ---------- */
     const quiz = [
-      {
-        pergunta: "O que é um algoritmo?",
-        alternativas: shuffle([
-          "Um conjunto de passos para resolver um problema.",
-          "Um programa escrito em C.",
-          "Um gráfico que organiza informações.",
-          "Uma linguagem de programação."
-        ]),
-        correta: "Um conjunto de passos para resolver um problema.",
-        dica: "Algoritmo = passos lógicos → do problema até a solução."
-      },
-      {
-        pergunta: "O que é uma variável?",
-        alternativas: shuffle([
-          "Um espaço na memória que armazena um valor.",
-          "Um número fixo.",
-          "Um comando para repetir algo.",
-          "Um tipo de erro em C."
-        ]),
-        correta: "Um espaço na memória que armazena um valor.",
-        dica: "Variável = caixa que guarda valores durante o programa."
-      },
-      {
-        pergunta: "O que é uma estrutura de decisão?",
-        alternativas: shuffle([
-          "Um comando que escolhe caminhos diferentes dependendo de uma condição.",
-          "Um comando para criar laços.",
-          "Um bloco de memória.",
-          "Um tipo de variável."
-        ]),
-        correta: "Um comando que escolhe caminhos diferentes dependendo de uma condição.",
-        dica: "É o famoso if/else: decisões baseadas em condições."
-      },
-      {
-        pergunta: "Para que servem os operadores relacionais?",
-        alternativas: shuffle([
-          "Comparar valores.",
-          "Somar números.",
-          "Criar variáveis.",
-          "Imprimir textos na tela."
-        ]),
-        correta: "Comparar valores.",
-        dica: "Operadores >, <, == servem para COMPARAR."
-      },
-      {
-        pergunta: "Qual o papel dos laços de repetição?",
-        alternativas: shuffle([
-          "Repetir ações automaticamente.",
-          "Armazenar dados.",
-          "Criar decisões.",
-          "Parar um programa imediatamente."
-        ]),
-        correta: "Repetir ações automaticamente.",
-        dica: "For/while = repete até uma condição acabar."
-      },
-      {
-        pergunta: "O que é um fluxograma?",
-        alternativas: shuffle([
-          "Representação visual de um algoritmo.",
-          "Um código-fonte em C.",
-          "Um erro comum de lógica.",
-          "Uma tabela de tipos de dados."
-        ]),
-        correta: "Representação visual de um algoritmo.",
-        dica: "Fluxograma = desenho do algoritmo."
-      },
-      {
-        pergunta: "O que significa depurar um programa?",
-        alternativas: shuffle([
-          "Encontrar e corrigir erros.",
-          "Apagar arquivos do computador.",
-          "Traduzir o código para outra linguagem.",
-          "Criar novas funções."
-        ]),
-        correta: "Encontrar e corrigir erros.",
-        dica: "Debug = caçar bugs, entender o comportamento."
-      },
-      {
-        pergunta: "O que é um erro lógico?",
-        alternativas: shuffle([
-          "O programa roda, mas faz a coisa errada.",
-          "O programa nem compila.",
-          "Falta de ponto e vírgula.",
-          "Um erro na instalação do compilador."
-        ]),
-        correta: "O programa roda, mas faz a coisa errada.",
-        dica: "Erro lógico = o código compila, mas o resultado está errado."
-      },
-      {
-        pergunta: "Qual é a função principal de um pseudocódigo?",
-        alternativas: shuffle([
-          "Descrever um algoritmo de forma simples e sem sintaxe.",
-          "Criar tabelas de memória.",
-          "Compilar programas.",
-          "Criar interfaces gráficas."
-        ]),
-        correta: "Descrever um algoritmo de forma simples e sem sintaxe.",
-        dica: "Pseudo = código 'falso', apenas descrição lógica."
-      },
-      {
-        pergunta: "O que significa 'entrada' em um algoritmo?",
-        alternativas: shuffle([
-          "Dados fornecidos ao programa.",
-          "O resultado final.",
-          "O tipo de variável.",
-          "A ordem dos passos."
-        ]),
-        correta: "Dados fornecidos ao programa.",
-        dica: "Entrada = o que o usuário fornece → saída = resultado."
-      }
+      { pergunta: "O que é um algoritmo?", alternativas: shuffle(["Um conjunto de passos para resolver um problema.","Um programa escrito em C.","Um gráfico que organiza informações.","Uma linguagem de programação."]), correta: "Um conjunto de passos para resolver um problema.", dica: "Algoritmo = passos lógicos → do problema até a solução." },
+      { pergunta: "O que é uma variável?", alternativas: shuffle(["Um espaço na memória que armazena um valor.","Um número fixo.","Um comando para repetir algo.","Um tipo de erro em C."]), correta: "Um espaço na memória que armazena um valor.", dica: "Variável = caixa que guarda valores durante o programa." },
+      { pergunta: "O que é uma estrutura de decisão?", alternativas: shuffle(["Um comando que escolhe caminhos diferentes dependendo de uma condição.","Um comando para criar laços.","Um bloco de memória.","Um tipo de variável."]), correta: "Um comando que escolhe caminhos diferentes dependendo de uma condição.", dica: "É o famoso if/else: decisões baseadas em condições." },
+      { pergunta: "Para que servem os operadores relacionais?", alternativas: shuffle(["Comparar valores.","Somar números.","Criar variáveis.","Imprimir textos na tela."]), correta: "Comparar valores.", dica: "Operadores >, <, == servem para COMPARAR." },
+      { pergunta: "Qual o papel dos laços de repetição?", alternativas: shuffle(["Repetir ações automaticamente.","Armazenar dados.","Criar decisões.","Parar um programa imediatamente."]), correta: "Repetir ações automaticamente.", dica: "For/while = repete até uma condição acabar." },
+      { pergunta: "O que é um fluxograma?", alternativas: shuffle(["Representação visual de um algoritmo.","Um código-fonte em C.","Um erro comum de lógica.","Uma tabela de tipos de dados."]), correta: "Representação visual de um algoritmo.", dica: "Fluxograma = desenho do algoritmo." },
+      { pergunta: "O que significa depurar um programa?", alternativas: shuffle(["Encontrar e corrigir erros.","Apagar arquivos do computador.","Traduzir o código para outra linguagem.","Criar novas funções."]), correta: "Encontrar e corrigir erros.", dica: "Debug = caçar bugs, entender o comportamento." },
+      { pergunta: "O que é um erro lógico?", alternativas: shuffle(["O programa roda, mas faz a coisa errada.","O programa nem compila.","Falta de ponto e vírgula.","Um erro na instalação do compilador."]), correta: "O programa roda, mas faz a coisa errada.", dica: "Erro lógico = o código compila, mas o resultado está errado." },
+      { pergunta: "Qual é a função principal de um pseudocódigo?", alternativas: shuffle(["Descrever um algoritmo de forma simples e sem sintaxe.","Criar tabelas de memória.","Compilar programas.","Criar interfaces gráficas."]), correta: "Descrever um algoritmo de forma simples e sem sintaxe.", dica: "Pseudo = código 'falso', apenas descrição lógica." },
+      { pergunta: "O que significa 'entrada' em um algoritmo?", alternativas: shuffle(["Dados fornecidos ao programa.","O resultado final.","O tipo de variável.","A ordem dos passos."]), correta: "Dados fornecidos ao programa.", dica: "Entrada = o que o usuário fornece → saída = resultado." }
     ];
 
-    // Converter quiz para formato do app
     const exercises = quiz.map(item => {
       const correctIndex = item.alternativas.indexOf(item.correta);
-      return {
-        q: item.pergunta,
-        opts: item.alternativas,
-        a: correctIndex,
-        hints: [item.dica]
-      };
+      return { q: item.pergunta, opts: item.alternativas, a: correctIndex, hints: [item.dica], answered: false };
     });
 
     /* ---------- State ---------- */
@@ -266,74 +158,70 @@
     let currentIndex = 0;
     let xp = 0;
     let streak = 0;
-    let modulesProgress = {conceitos: {done:0,total:0}};
-    let moodHistory = [];
+    let correctAnswers = 0;
+    let wrongAnswers = 0;
+    let modulesProgress = { conceitos: { done: 0, total: 0 } };
 
-    /* ---------- UI helpers ---------- */
-    function by(id){return document.getElementById(id)}
-    function showEl(id){ const e=by(id); if(e) e.classList.remove('hidden'); }
-    function hideEl(id){ const e=by(id); if(e) e.classList.add('hidden'); }
+    /* ---------- Helpers ---------- */
+    const by = id => document.getElementById(id);
+    const showEl = id => { const e = by(id); if (e) e.classList.remove('hidden'); };
+    const hideEl = id => { const e = by(id); if (e) e.classList.add('hidden'); };
 
-    /* ---------- Splash -> show login screen ---------- */
-    setTimeout(()=>{
-      const splash = by('splash');
-      if(splash) splash.style.display='none';
+    /* ---------- Splash → Login ---------- */
+    setTimeout(() => {
+      by('splash').style.display = 'none';
       showEl('login-screen');
-    },1400);
+    }, 1400);
 
-    /* ---------- Login actions ---------- */
-    const authLoginBtn = by('auth-login');
-    const authGuestBtn = by('auth-guest');
-    const loginModal = by('login-modal');
-    if(authLoginBtn) authLoginBtn.addEventListener('click', ()=>{ if(loginModal) loginModal.style.display='block'; });
-    if(authGuestBtn) authGuestBtn.addEventListener('click', ()=>{ user={email:'guest',name:'Convidado'}; startApp(); });
-    const loginDoBtn = by('login-do');
-    if(loginDoBtn) loginDoBtn.addEventListener('click', ()=>{
+    /* ---------- Login ---------- */
+    by('auth-login').addEventListener('click', () => { by('login-modal').style.display = 'block'; });
+    by('auth-guest').addEventListener('click', () => { user = { email: 'guest', name: 'Convidado' }; startApp(); });
+    by('login-do').addEventListener('click', () => {
       const email = by('email').value.trim();
-      if(!email) return alert('Digite um email');
-      user = {email, name: email.split('@')[0]};
+      if (!email) return alert('Digite um e-mail');
+      user = { email, name: email.split('@')[0] };
       startApp();
     });
 
-    /* ---------- Start app ---------- */
-    function startApp(){
-      if(loginModal) loginModal.style.display='none';
+    /* ---------- Start App ---------- */
+    function startApp() {
+      by('login-modal').style.display = 'none';
       hideEl('login-screen');
       showEl('main-app');
-      by('profile-box').textContent = user.name + ' ('+user.email+')';
-      modulesProgress = {conceitos:{done:0,total:exercises.length}};
-      currentIndex = 0;
-      xp = 0;
-      streak = 0;
-      moodHistory = [];
+      by('profile-box').textContent = `${user.name} (${user.email})`;
+
+      modulesProgress.conceitos.total = exercises.length;
+      modulesProgress.conceitos.done = 0;
+      currentIndex = xp = streak = correctAnswers = wrongAnswers = 0;
+      exercises.forEach(ex => ex.answered = false);
+
       renderExercise();
       initCharts();
       updateAnalytics();
       updateProgressBar();
     }
 
-    /* ---------- Exercise rendering ---------- */
-    function renderExercise(){
+    /* ---------- Render Exercise ---------- */
+    function renderExercise() {
       const area = by('exercise-area');
       const ex = exercises[currentIndex];
-      if(!ex){
-        area.innerHTML = '<h3 class="fade-in">🎉 Você terminou o módulo!</h3>';
-        by('finish-btn').style.display='inline-block';
+      if (!ex) {
+        area.innerHTML = '<h3 class="fade-in">Você terminou o módulo!</h3>';
+        by('finish-btn').style.display = 'inline-block';
         updateAnalytics();
         return;
       }
 
-      // --- shuffle options while keeping track of correct index ---
-      const indexed = ex.opts.map((text, idx)=>({text, idx}));
-      for(let i = indexed.length -1; i>0; i--){
-        const j = Math.floor(Math.random()*(i+1));
+      const indexed = ex.opts.map((t, i) => ({ text: t, idx: i }));
+      for (let i = indexed.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
         [indexed[i], indexed[j]] = [indexed[j], indexed[i]];
       }
-      const newCorrectIndex = indexed.findIndex(o=>o.idx === ex.a);
+      const newCorrect = indexed.findIndex(o => o.idx === ex.a);
 
-      let html = `<div><h3>${currentIndex+1}. ${ex.q}</h3>`;
+      let html = `<div><h3>${currentIndex + 1}. ${ex.q}</h3>`;
       html += '<div style="margin-top:10px">';
-      indexed.forEach((opt,i)=>{
+      indexed.forEach((opt, i) => {
         html += `<label style="display:block;margin:8px 0"><input type="radio" name="alt" value="${i}"> ${opt.text}</label>`;
       });
       html += '</div>';
@@ -341,136 +229,143 @@
       html += '<div id="feedback" class="feedback small"></div></div>';
       area.innerHTML = html;
 
-      const send = by('send');
-      if(send) send.addEventListener('click', ()=>{
+      /* Enviar */
+      by('send').addEventListener('click', () => {
         const sel = document.querySelector('input[name="alt"]:checked');
         const fb = by('feedback');
-        if(!sel){ fb.textContent='Selecione uma alternativa.'; fb.style.color='orange'; return; }
-        const correct = parseInt(sel.value)===newCorrectIndex;
-        if(correct){
-          fb.textContent='Correto! +10 XP';
-          fb.style.color='var(--accent)';
-          xp += 10;
-          modulesProgress.conceitos.done = Math.min(modulesProgress.conceitos.total, modulesProgress.conceitos.done+1);
+        if (!sel) { fb.textContent = 'Selecione uma alternativa.'; fb.style.color = 'orange'; return; }
+
+        const correct = parseInt(sel.value) === newCorrect;
+        if (correct) {
+          if (!ex.answered) { correctAnswers++; xp += 10; modulesProgress.conceitos.done++; }
+          fb.textContent = 'Correto! +10 XP';
+          fb.style.color = 'var(--accent)';
         } else {
-          fb.textContent='Incorreto. Tente novamente.';
-          fb.style.color='red';
+          if (!ex.answered) wrongAnswers++;
+          fb.textContent = 'Incorreto. Tente novamente.';
+          fb.style.color = 'red';
         }
+        ex.answered = true;
         fb.classList.add('fade-in');
-        setTimeout(()=>fb.classList.remove('fade-in'),400);
+        setTimeout(() => fb.classList.remove('fade-in'), 400);
+
         updateAnalytics();
         updateProgressBar();
       });
 
-      const hint = by('hint');
-      if(hint){
-        let step = 0;
-        hint.addEventListener('click', ()=>{
-          const fb = by('feedback');
-          const ex = exercises[currentIndex];
-          if(!ex || !ex.hints || ex.hints.length === 0){
-            fb.textContent='Sem dicas disponíveis.';
-            return;
-          }
-          fb.textContent = '💡 ' + ex.hints[step % ex.hints.length];
-          fb.style.color='var(--muted)';
-          fb.classList.add('fade-in');
-          setTimeout(()=>fb.classList.remove('fade-in'),400);
-          step++;
-        });
-      }
+      /* Dica */
+      let hintStep = 0;
+      by('hint').addEventListener('click', () => {
+        const fb = by('feedback');
+        if (!ex.hints.length) { fb.textContent = 'Sem dicas.'; return; }
+        fb.textContent = ex.hints[hintStep % ex.hints.length];
+        fb.style.color = 'var(--muted)';
+        fb.classList.add('fade-in');
+        setTimeout(() => fb.classList.remove('fade-in'), 400);
+        hintStep++;
+      });
 
-      const labels = area.querySelectorAll('label');
-      labels.forEach((el,i)=>{
-        el.style.opacity=0;
-        el.style.transform='translateY(6px)';
-        setTimeout(()=>{
-          el.style.transition='all .36s cubic-bezier(.2,.9,.2,1)';
-          el.style.opacity=1;
-          el.style.transform='none';
+      /* Animação das opções */
+      area.querySelectorAll('label').forEach((el, i) => {
+        el.style.opacity = 0; el.style.transform = 'translateY(6px)';
+        setTimeout(() => {
+          el.style.transition = 'all .36s cubic-bezier(.2,.9,.2,1)';
+          el.style.opacity = 1; el.style.transform = 'none';
         }, 70 * i);
       });
     }
 
-    /* navigation */
-    const prevBtn = by('prev-btn');
-    if(prevBtn) prevBtn.addEventListener('click', ()=>{ if(currentIndex>0) currentIndex--; renderExercise(); updateProgressBar(); });
-    const nextBtn = by('next-btn');
-    if(nextBtn) nextBtn.addEventListener('click', ()=>{ if(currentIndex < exercises.length-1) currentIndex++; renderExercise(); updateProgressBar(); });
-    const backBtn = by('back-modulos');
-    if(backBtn) backBtn.addEventListener('click', ()=>{ location.reload(); });
-    const finishBtn = by('finish-btn');
-    if(finishBtn) finishBtn.addEventListener('click', ()=>{ alert('Módulo concluído! Parabéns!'); xp += 50; updateAnalytics(); });
-    const resetBtn = by('btn-reset');
-    if(resetBtn) resetBtn.addEventListener('click', ()=>{
-      if(!confirm('Resetar progresso?')) return;
-      xp=0; streak=0; modulesProgress.conceitos.done=0; moodHistory=[]; updateAnalytics(); updateProgressBar(); currentIndex = 0; renderExercise();
+    /* ---------- Navegação ---------- */
+    by('prev-btn').addEventListener('click', () => { if (currentIndex > 0) currentIndex--; renderExercise(); updateProgressBar(); });
+    by('next-btn').addEventListener('click', () => { if (currentIndex < exercises.length - 1) currentIndex++; renderExercise(); updateProgressBar(); });
+    by('back-modulos').addEventListener('click', () => location.reload());
+    by('finish-btn').addEventListener('click', () => { alert('Módulo concluído! Parabéns!'); xp += 50; updateAnalytics(); });
+    by('btn-reset').addEventListener('click', () => {
+      if (!confirm('Resetar progresso?')) return;
+      xp = streak = correctAnswers = wrongAnswers = 0;
+      modulesProgress.conceitos.done = 0;
+      exercises.forEach(ex => ex.answered = false);
+      currentIndex = 0;
+      updateAnalytics(); updateProgressBar(); renderExercise();
     });
 
-    /* progress animation */
-    function updateProgressBar(){
-      const total = modulesProgress.conceitos.total || exercises.length;
-      const done = modulesProgress.conceitos.done || 0;
-      const percent = total===0?0:Math.round((done/total)*100);
+    /* ---------- Progress Bar ---------- */
+    function updateProgressBar() {
+      const total = modulesProgress.conceitos.total;
+      const done = modulesProgress.conceitos.done;
+      const pct = total ? Math.round((done / total) * 100) : 0;
       const el = by('progress-inner');
-      if(el){
-        el.style.width = percent + '%';
-        el.textContent = percent + '%';
+      if (el) { el.style.width = pct + '%'; el.textContent = pct + '%'; }
+    }
+
+    /* ---------- Gráfico de Pizza ---------- */
+    let chartPerformance = null;
+
+    function initCharts() {
+      const ctx = by('chartPerformance')?.getContext('2d');
+      if (!ctx) return;
+
+      chartPerformance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Acertos', 'Erros'],
+          datasets: [{
+            data: [0, 0],
+            backgroundColor: ['rgba(75,192,192,0.8)', 'rgba(231,76,60,0.8)'],
+            borderColor: ['rgb(75,192,192)', 'rgb(231,76,60)'],
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#fff', font: { size: 13 } } },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const tot = correctAnswers + wrongAnswers;
+                  const val = ctx.parsed;
+                  const pct = tot ? Math.round((val / tot) * 100) : 0;
+                  return `${ctx.label}: ${val} (${pct}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+      updatePerformanceChart();
+    }
+
+    function updatePerformanceChart() {
+      if (!chartPerformance) return;
+      const total = correctAnswers + wrongAnswers;
+      const accuracy = total ? Math.round((correctAnswers / total) * 100) : 0;
+
+      chartPerformance.data.datasets[0].data = [correctAnswers, wrongAnswers];
+      chartPerformance.update();
+
+      const center = by('pie-center');
+      if (center) {
+        center.textContent = accuracy + '%';
+        center.style.color = accuracy >= 70 ? 'var(--accent)' : accuracy >= 40 ? 'orange' : 'red';
+        if (total === 0) { center.textContent = '0%'; center.style.color = '#aaa'; }
       }
     }
 
-    /* Analytics (charts + table) */
-    let chartProgress=null, chartMood=null;
-    function initCharts(){
-      try{
-        const ctx = by('chartProgress') && by('chartProgress').getContext('2d');
-        if(ctx) chartProgress = new Chart(ctx, {
-          type:'line',
-          data:{ labels:[], datasets:[{ label:'XP', data:[], fill:true, tension:.4, backgroundColor:'rgba(139,69,186,0.12)', borderColor:'rgb(142,68,173)' }]},
-          options:{ responsive:true, scales:{ x:{ display:false } } }
-        });
-        const ctx2 = by('chartMood') && by('chartMood').getContext('2d');
-        if(ctx2) chartMood = new Chart(ctx2, {
-          type:'bar',
-          data:{ labels:[], datasets:[{ label:'Motivação (1-5)', data:[], backgroundColor:'rgba(75,192,192,0.6)'}]},
-          options:{ responsive:true, scales:{ y:{ suggestedMin:0, suggestedMax:5 } } }
-        });
-      }catch(e){ console.warn('Chart init failed', e); }
-    }
-
-    function updateAnalytics(){
+    /* ---------- Analytics ---------- */
+    function updateAnalytics() {
+      const total = correctAnswers + wrongAnswers;
       by('tbl-xp').textContent = xp;
       by('tbl-streak').textContent = streak;
       by('tbl-mods').textContent = modulesProgress.conceitos.done;
-      by('tbl-last').textContent = (modulesProgress.conceitos.done>0) ? (modulesProgress.conceitos.done + ' acertos') : '—';
+      by('tbl-last').textContent = total ? `${correctAnswers} acertos / ${wrongAnswers} erros` : '—';
       by('xp').textContent = xp;
       by('streak-count').textContent = streak;
-
-      const time = new Date().toLocaleTimeString();
-      if(chartProgress && chartMood){
-        chartProgress.data.labels.push(time);
-        chartProgress.data.datasets[0].data.push(xp);
-        if(chartProgress.data.labels.length>12){ chartProgress.data.labels.shift(); chartProgress.data.datasets[0].data.shift(); }
-        chartProgress.update();
-
-        const moods = moodHistory.slice(-7);
-        chartMood.data.labels = moods.map((m,i)=>i+1);
-        chartMood.data.datasets[0].data = moods;
-        chartMood.update();
-      }
+      updatePerformanceChart();
     }
 
-    /* mood buttons */
-    Array.from(document.querySelectorAll('.smallMood')).forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const val = parseInt(btn.getAttribute('data-mood'));
-        moodHistory.push(val);
-        btn.animate([{transform:'scale(1)'},{transform:'scale(1.12)'},{transform:'scale(1)'}],{duration:360});
-        updateAnalytics();
-      });
-    });
-
-    /* init UI state */
+    /* ---------- Init ---------- */
     modulesProgress.conceitos.total = exercises.length;
     initCharts();
   </script>
